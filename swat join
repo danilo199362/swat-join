@@ -1,0 +1,374 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+
+namespace Swat_Join
+{
+
+
+    public partial class Form1 : Form
+    {
+        public class Paths
+        {
+            public string file1 { get; set; }
+            public string file2 { get; set; }
+            public string file3 { get; set; }
+            public string file4 { get; set; }
+            public string file5 { get; set; }
+            public string file6 { get; set; }
+        }
+
+        //string[] paths = new string[6] ;
+        //List<String> paths = new List<String>();
+        Paths paths = new Paths();
+        static string configurationPath = "swat.conf";
+
+
+        const string UriScheme = "swatjoin";
+        const string FriendlyName = "Swat Game Join";
+
+        public Form1(string confpath, string args)
+        {
+            InitializeComponent();
+            this.createKeys();
+
+            Form1.configurationPath = confpath ?? Form1.configurationPath;
+            if (File.Exists(Form1.configurationPath))
+            {
+
+                using (StreamReader sr = File.OpenText(Form1.configurationPath))
+                {
+                    JsonSerializer serializer = new JsonSerializer();
+                    this.paths = (Paths)serializer.Deserialize(sr, typeof(Paths));
+                   
+                    if (this.paths.file1 == null)
+                    {
+                        button1.Text = "Select File";
+                    }
+                    else
+                    {
+                        button1.Text = this.paths.file1;
+                    }
+
+                    if (this.paths.file2 == null)
+                    {
+                        button2.Text = "Select File";
+                    }
+                    else
+                    {
+                        button2.Text = this.paths.file2;
+                    }
+
+                    if (this.paths.file3 == null)
+                    {
+                        button3.Text = "Select File";
+                    }
+                    else
+                    {
+                        button3.Text = this.paths.file3;
+                    }
+
+                    if (this.paths.file4 == null)
+                    {
+                        button4.Text = "Select File";
+                    }
+                    else
+                    {
+                        button4.Text = this.paths.file4;
+                    }
+
+                    if (this.paths.file5 == null)
+                    {
+                        button5.Text = "Select File";
+                    }
+                    else
+                    {
+                        button5.Text = this.paths.file5;
+                    }
+
+                    if (this.paths.file6 == null) {
+                        button6.Text = "Select File";
+                    }
+                    else
+                    {
+                        button6.Text = this.paths.file6;
+                    }
+                    
+                }
+            }
+
+            if (args != null)
+            {
+                // leggendo i parametri per aprire la versione corretta
+                string[] parameters = args.Substring(args.IndexOf("//") + 2).Split('/');
+
+                string version = parameters?[0].Replace(" ", "").Replace("%20","");
+                string argsGame = parameters.Length > 1 ? parameters[1] : "";
+                // string port = parameters.Length > 2 ? parameters[2] : "";
+
+                //vedo che versione e'
+
+                Process game = new Process();
+                Boolean versionFound = true;
+                game.StartInfo.ErrorDialog = true;
+                game.StartInfo.UseShellExecute = true;
+                game.StartInfo.Arguments = argsGame + " -nointro";
+                if(version.IndexOf("SEF")>=0)
+                {
+                    version = "SEF";
+                }
+                if (version.IndexOf("SSF") >= 0)
+                {
+                    version = "SSF";
+                }
+                this.label8.Text = version;
+
+                switch (version)
+                {
+                    case "SWAT41.0":
+                        // aprire la versione 1.0
+                        game.StartInfo.FileName = this.paths.file1;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file1);
+                        break;
+
+                    case "SWAT41.1":
+                        // aprire la versione 1.1
+                        game.StartInfo.FileName = this.paths.file2;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file2);
+                        break;
+
+                    case "SWAT4X1.0":
+                        game.StartInfo.FileName = this.paths.file3;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file3);
+                        break;
+
+                    case "SEF":
+                        game.StartInfo.FileName = this.paths.file4;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file4);
+                        break;
+
+                    case "SSF":
+                        game.StartInfo.FileName = this.paths.file5;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file5);
+                        break;
+
+                    case "SAS1.0":
+                        game.StartInfo.FileName = this.paths.file6;
+                        game.StartInfo.WorkingDirectory = Path.GetDirectoryName(this.paths.file6);
+                        break;
+
+                    default:
+                        //this.label7.Text = "unknown version: " + version;
+                        versionFound = false;
+                        break;
+                }
+
+                if(versionFound)
+                {
+                    try {
+                        game.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        this.label7.Text = ex.Message;
+                    }
+                }
+               
+            }
+
+
+        }
+
+        private void label6_Click(object sender, EventArgs e)
+        {
+
+        }
+
+
+        private void createKeys()
+        {
+
+            string pathSwatJoin = Application.ExecutablePath;
+            using (var key = Registry.CurrentUser.CreateSubKey("SOFTWARE\\Classes\\" + UriScheme))
+            {
+
+                key.SetValue("", "URL:" + FriendlyName);
+                key.SetValue("URL Protocol", "");
+
+                using (var defaultIcon = key.CreateSubKey("DefaultIcon"))
+                {
+                    defaultIcon.SetValue("", pathSwatJoin + ",1");
+                }
+
+                using (var commandKey = key.CreateSubKey(@"shell\open\command"))
+                {
+                    commandKey.SetValue("", "\"" + pathSwatJoin + "\" \"" + Path.GetDirectoryName(pathSwatJoin) + "\\swat.conf\" \"%1\"");
+                }
+            }
+
+        }
+
+        private void saveToFile()
+        {
+            File.WriteAllText(Form1.configurationPath, JsonConvert.SerializeObject(this.paths));
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file1 = new OpenFileDialog();
+            if (file1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button1.Text = "Saved";
+            }
+            else
+            {
+                button1.Text = "Select File";
+            }
+
+            if (file1.FileName == "")
+            {
+                paths.file1 = null;
+            }
+            else
+            {
+                paths.file1 = file1.FileName;
+            }
+            this.saveToFile();
+
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file2 = new OpenFileDialog();
+            if (file2.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button2.Text = "Saved";
+            }
+            else
+            {
+                button2.Text = "Select File";
+            }
+
+            if (file2.FileName == "")
+            {
+                paths.file2 = null;
+            }
+            else
+            {
+                paths.file2 = file2.FileName;
+            }
+            this.saveToFile();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file3 = new OpenFileDialog();
+            if (file3.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button3.Text = "Saved";
+            }
+            else
+            {
+                button3.Text = "Select File";
+            }
+
+            if (file3.FileName == "")
+            {
+                paths.file3 = null;
+            }
+            else
+            {
+                paths.file3 = file3.FileName;
+            }
+            this.saveToFile();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file4 = new OpenFileDialog();
+            if (file4.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button4.Text = "Saved";
+            }
+            else
+            {
+                button4.Text = "Select File";
+            }
+
+            if (file4.FileName == "")
+            {
+                paths.file6 = null;
+            }
+            else
+            {
+                paths.file4 = file4.FileName;
+            }
+            this.saveToFile();
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file5 = new OpenFileDialog();
+            if (file5.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button5.Text = "Saved";
+            }
+            else
+            {
+                button5.Text = "Select File";
+            }
+
+            if (file5.FileName == "")
+            {
+                paths.file5 = null;
+            }
+            else
+            {
+                paths.file5 = file5.FileName;
+            }
+            this.saveToFile();
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog file6 = new OpenFileDialog();
+            
+            if (file6.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                button6.Text = "Saved";
+            }
+            else
+            {
+                button6.Text = "Select File";
+            }
+
+            if(file6.FileName == "")
+            {
+                paths.file6 = null;
+            }
+            else
+            {
+                paths.file6 = file6.FileName;
+            }
+            
+            this.saveToFile();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+
+    }
+}
